@@ -1,6 +1,6 @@
 ## Bio-OS TES K8s Agent
 
-Bio-OS TES K8s Agent is a component of the [Bio-OS task execution service](https://github.com/GBA-BI/tes-api) , responsible for queued tasks to available Kubernetes clusters. It evaluates task requirements, quotas, and priorities to achieve balanced and efficient resource usage.
+Bio-OS TES K8s Agent is a component of the [Bio-OS task execution service](https://github.com/GBA-BI/tes-api) , responsible for eceives scheduled tasks from the API server, launches them as Kubernetes Jobs/Pods, monitors execution, and reports task status and logs back.
 
 #### Deployment
 For deployment, you can refer to the manifests directory to build and install these services in your own Kubernetes cluster using Helm.
