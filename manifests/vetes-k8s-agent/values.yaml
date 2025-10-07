@@ -1,0 +1,215 @@
+## platformConfig contains information about the environment on which the Chart is being installed
+## These values are expected be updated during the platform installation stage
+platformConfig:
+  ## Container registry for all images involved in the chart
+  imageRegistry: hub.byted.org
+  ## Container repository for platform components
+  imageRepositoryRelease: infcprelease
+  ## Platform-wide image pull policy
+  imagePullPolicy: Always
+  ## Image pull secret names
+  imagePullSecret: []
+
+labels: {}
+
+podLabels: {}
+
+podAnnotations: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+image:
+  name: vetes-k8s-agent
+  tag: v1.0.0
+
+replicaCount: 2
+
+priorityClassName: ""
+
+resources:
+  limits:
+    cpu: 1
+    memory: 2Gi
+  requests:
+    cpu: 1
+    memory: 2Gi
+
+service:
+  type: ClusterIP
+  annotations: {}
+  labels: {}
+
+metricsPort: 8081
+healthzPort: 9440
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+hardAntiAffinity: false
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 3
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 3
+  successThreshold: 1
+
+prometheus:
+  labels: {}
+  interval: 15s
+  scrapeTimeout: 10s
+
+log:
+  level: info
+  outputPath: app.log
+  taskLog:
+    outputDir: /app/log
+    pvcName: vetes-log-pvc
+    storageClass: "" # must be ReadWriteMany accessMode
+    pvcSize: 10Gi
+    filerLogLevel: info
+  collector:
+    resources:
+      limits:
+        cpu: 10m
+        memory: 20Mi
+      requests:
+        cpu: 10m
+        memory: 20Mi
+
+vetesClient:
+  endpoint: http://vetes-api:8080
+  timeout: 10m # for huge inputs/outputs
+
+cluster:
+  id: ""
+  reportPeriod: 15s
+  capacity: null
+  # count: int
+  # cpu_cores: int
+  # ram_gb: float64
+  # disk_gb: float64
+  # gpu_capacity: # null means no limit, empty means no gpu
+  #   gpu:
+  #     string: float64
+  limits: null
+  # cpu_cores: int
+  # ram_gb: float64
+  # gpu_limit: # null means no limit, empty means no gpu
+  #   gpu:
+  #     string: float64
+
+syncer:
+  period: 10s
+  concurrency: 10
+
+reconciler:
+  syncTimeout: 1m
+  concurrency: 10
+
+offload:
+  type: pvc
+  pvc:
+    pvcName: vetes-offload-pvc
+    path: /offload
+    storageClass: "" # must be ReadWriteMany accessMode
+    pvcSize: 10Gi
+
+s3:
+  enable: true
+  type: tos # tos or s3
+  staticSecret:
+    enable: true
+    name: vetes-s3-secret
+    ak: ""
+    sk: ""
+  sdk:
+    configmapName: vetes-s3sdk-config
+    endpoint: "tos-cn-beijing.ivolces.com"
+    region: "cn-beijing"
+    partSize: "67108864" # 64MB
+    taskNum: 10
+    enableCRC: false
+    maxBandWidth: 0 # unlimited
+
+executorImagePullSecret:
+  static:
+    enable: true
+    name: ""
+
+executorBasePath: "/cromwell-executions/"
+
+filerImage:
+  name: vetes-filer
+  tag: v1.0.0
+
+filerResources:
+  limits:
+    cpu: 1
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+storageClass: ebs-ssd
+
+executorRetries: 2
+filerRetries: 2
+
+podPollInterval: 1m
+podImagePullBackoffTimeout: 10m
+
+filerPodLabels: {}
+filerPodAnnotations: {}
+executorECSPodLabels: {}
+executorECSPodAnnotations: {}
+executorPodEnv: {}
+filerPodEnv: {}
+
+accelerate:
+  type: "null" # "null" or "mount-tos"
+  mountTOS:
+    tosS3URL: "http://tos-s3-cn-beijing.ivolces.com"
+    bucketNumPerTask: 10
+    cleanPeriod: 10m
+    staticTOSSecret:
+      enable: true
+      name: workflow-tos-secret
+      ak: ""
+      sk: ""
+    fusePodResources:
+      requests:
+        cpu: 100m
+        memory: 200Mi
+      limits:
+        cpu: "2"
+        memory: 8Gi
+    additionalArgs: "-o multireq_max=5"
+
+transfer:
+  enable: false
+  wesBasePath: /data
+  tesBasePath: /transfer
+  pvcName: transfer-pvc
+
+networkpolicy:
+  enable: true

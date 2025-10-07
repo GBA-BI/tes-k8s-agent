@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vetes-k8s-agent.fullname" . }}
+  labels:
+    {{- include "vetes-k8s-agent.labels" . | nindent 4 }}
+spec:
+  replicas: {{ default "1" .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "vetes-k8s-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "vetes-k8s-agent.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      serviceAccountName: {{ include "vetes-k8s-agent.fullname" . }}
+      affinity:
+        podAntiAffinity:
+          {{- if .Values.hardAntiAffinity }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  {{- include "vetes-k8s-agent.selectorLabels" . | nindent 18 }}
+          {{- else }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    {{- include "vetes-k8s-agent.selectorLabels" . | nindent 20 }}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.platformConfig.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ . }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "vetes-k8s-agent.image" . }}
+          imagePullPolicy: {{ default "Always" .Values.platformConfig.imagePullPolicy | quote }}
+          args:
+            - -c
+            - /app/conf/config.yaml
+            - -n
+            - {{ .Release.Namespace }}
+          env:
+            - name: "POD_NAME"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: "POD_NAMESPACE"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.metricsPort }}
+              protocol: TCP
+            - name: healthz
+              containerPort: {{ .Values.healthzPort }}
+              protocol: TCP
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /app/conf
+              name: config
+              readOnly: true
+            - mountPath: {{ .Values.log.taskLog.outputDir }}
+              name: log-volume
+            {{- if eq .Values.offload.type "pvc" }}
+            - mountPath: {{ .Values.offload.pvc.path }}
+              name: offload-volume
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "vetes-k8s-agent.fullname" . }}
+            items:
+              - key: config.yaml
+                path: config.yaml
+              - key: cluster.yaml
+                path: cluster.yaml
+            optional: false
+        - name: log-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.log.taskLog.pvcName }}
+        {{- if eq .Values.offload.type "pvc" }}
+        - name: offload-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.offload.pvc.pvcName }}
+        {{- end }}

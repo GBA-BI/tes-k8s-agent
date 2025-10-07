@@ -1,0 +1,23 @@
+name: Docker Image CI for GHCR
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Convert repository name to lowercase
+        run: echo "LOWER_REPO_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Login to GitHub Container Registry
+        run: docker login --username zhou-jianwen --password ${{ secrets.GH_PAT }} ghcr.io
+
+      - name: Build and push the image
+        run: |
+          docker build . --file build/Dockerfile --tag ghcr.io/$LOWER_REPO_NAME:${{ github.ref_name }}
+          docker push ghcr.io/$LOWER_REPO_NAME:${{ github.ref_name }}

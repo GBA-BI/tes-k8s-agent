@@ -1,0 +1,15 @@
+{{- if eq .Values.offload.type "pvc" }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.offload.pvc.pvcName }}
+  labels:
+    {{- include "vetes-k8s-agent.labels" . | nindent 4 }}
+spec:
+  storageClassName: {{ .Values.offload.pvc.storageClass }}
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.offload.pvc.pvcSize }}
+{{- end }}

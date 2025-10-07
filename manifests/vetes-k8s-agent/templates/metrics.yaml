@@ -1,0 +1,20 @@
+{{ if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" -}}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "vetes-k8s-agent.fullname" . }}
+  labels: {{ toYaml .Values.prometheus.labels | nindent 4 }}
+    {{- include "vetes-k8s-agent.labels" . | nindent 4 }}
+spec:
+  endpoints:
+    - path: /metrics
+      port: http
+      interval: {{ .Values.prometheus.interval }}
+      scrapeTimeout: {{ .Values.prometheus.scrapeTimeout }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels: {{- include "vetes-k8s-agent.selectorLabels" . | nindent 6 }}
+{{- end }}

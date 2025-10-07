@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "vetes-k8s-agent.log-collector.name" . }}
+  labels:
+    {{- include "vetes-k8s-agent.log-collector.labels" . | nindent 4 }}
+spec:
+  replicas: 1 # must be 1
+  selector:
+    matchLabels:
+      {{- include "vetes-k8s-agent.log-collector.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "vetes-k8s-agent.log-collector.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.platformConfig.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ . }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "vetes-k8s-agent.image" . }}
+          imagePullPolicy: {{ default "Always" .Values.platformConfig.imagePullPolicy | quote }}
+          command:
+            - /bin/bash
+            - -c
+            - "sleep infinity"
+          resources:
+            {{- toYaml .Values.log.collector.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: {{ .Values.log.taskLog.outputDir }}
+              name: log-volume
+      volumes:
+        - name: log-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.log.taskLog.pvcName }}

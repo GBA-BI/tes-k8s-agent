@@ -1,0 +1,46 @@
+---
+name: Bug report
+description: Create a report to help us improve.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for opening a bug report for this project.
+
+        Please do *NOT* ask support questions in Github issues.
+  - type: textarea
+    attributes:
+      label: What did you do?
+      description: Please provide steps for us to reproduce this issue.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What did you expect to see?
+  - type: textarea
+    attributes:
+      label: What did you see instead? Under which circumstances?
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        ## Environment
+  - type: input
+    attributes:
+      label: System information
+      description: Container cluster environment 
+      placeholder: kubernetes v1.28.3
+  - type: textarea
+    attributes:
+      label: bioos tes version
+      description: Insert output of tes filer version here.
+      render: text
+      placeholder: |
+        e.g. v1.15.0
+  - type: textarea
+    attributes:
+      label: configuration file
+      description: Insert relevant configuration here. Don't forget to remove secrets.
+      render: yaml
+  

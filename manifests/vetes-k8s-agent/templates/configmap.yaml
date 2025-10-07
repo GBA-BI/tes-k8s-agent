@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vetes-k8s-agent.fullname" . }}
+  labels:
+    {{- include "vetes-k8s-agent.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    leaderElection:
+      enable: true
+      namespace: {{ .Release.Namespace }}
+      name: {{ include "vetes-k8s-agent.fullname" . }}
+    vetesClient:
+      endpoint: {{ .Values.vetesClient.endpoint }}
+      timeout: {{ .Values.vetesClient.timeout }}
+    server:
+      healthzPort: {{ .Values.healthzPort }}
+      metricsPort: {{ .Values.metricsPort }}
+    log:
+      level: {{ .Values.log.level }}
+      output-path: {{ .Values.log.outputPath }}
+    cluster:
+      id: {{ .Values.cluster.id }}
+      configPath: /app/conf/cluster.yaml
+      reportPeriod: {{.Values.cluster.reportPeriod }}
+    accelerate:
+      type: {{ .Values.accelerate.type | quote }}
+      {{- if eq .Values.accelerate.type "mount-tos" }}
+      mountTOS:
+        tosS3URL: {{ .Values.accelerate.mountTOS.tosS3URL }}
+        bucketNumPerTask: {{ .Values.accelerate.mountTOS.bucketNumPerTask }}
+        cleanPeriod: {{ .Values.accelerate.mountTOS.cleanPeriod }}
+        staticTOSSecret:
+          enable: {{ .Values.accelerate.mountTOS.staticTOSSecret.enable }}
+          name: {{ .Values.accelerate.mountTOS.staticTOSSecret.name }}
+        fusePodResources:
+          {{- toYaml .Values.accelerate.mountTOS.fusePodResources | nindent 10 }}
+        additionalArgs: {{ .Values.accelerate.mountTOS.additionalArgs | quote }}
+      {{- end }}
+    syncer:
+      period: {{ .Values.syncer.period }}
+      concurrency: {{.Values.syncer.concurrency }}
+    reconciler:
+      syncTimeout: {{ .Values.reconciler.syncTimeout }}
+      concurrency: {{.Values.reconciler.concurrency }}
+    offload:
+      type: {{ .Values.offload.type }}
+      {{- if eq .Values.offload.type "pvc" }}
+      pvc:
+        pvcName: {{ .Values.offload.pvc.pvcName }}
+        path: {{ .Values.offload.pvc.path }}
+      {{- end }}
+    runner:
+      s3:
+        enable: {{ .Values.s3.enable }}
+        type: {{ .Values.s3.type }}
+        {{- if .Values.s3.staticSecret.enable }}
+        staticSecretName: {{ .Values.s3.staticSecret.name }}
+        {{- end }}
+        sdkConfigmapName: {{ .Values.s3.sdk.configmapName }}
+      executorImagePullSecret:
+        {{- if .Values.executorImagePullSecret.static.enable }}
+        staticName: {{ .Values.executorImagePullSecret.static.name }}
+        {{- end }}
+      executorBasePath: {{ .Values.executorBasePath }}
+      filerImage:
+        image: {{ include "vetes-k8s-agent.filer.image" . }}
+        {{- with .Values.platformConfig.imagePullSecret }}
+        imagePullSecretName: {{ . }}
+        {{- end }}
+      filerResources:
+        {{- toYaml .Values.filerResources | nindent 8 }}
+      storageClass: {{ .Values.storageClass }}
+      executorRetries: {{ .Values.executorRetries }}
+      filerRetries: {{ .Values.filerRetries }}
+      podPollInterval: {{ .Values.podPollInterval }}
+      podImagePullBackoffTimeout: {{ .Values.podImagePullBackoffTimeout }}
+      {{- with .Values.filerPodLabels }}
+      filerPodLabels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.filerPodAnnotations }}
+      filerPodAnnotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.executorECSPodLabels }}
+      executorECSPodLabels:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.executorECSPodAnnotations }}
+      executorECSPodAnnotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.executorPodEnv }}
+      executorPodEnv:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.filerPodEnv }}
+      filerPodEnv:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      taskLog:
+        outputDir: {{ .Values.log.taskLog.outputDir }}
+        pvcName: {{ .Values.log.taskLog.pvcName }}
+        filerLogLevel: {{ .Values.log.taskLog.filerLogLevel }}
+      {{- if .Values.transfer.enable }}
+      transfer:
+        enable: {{ .Values.transfer.enable }}
+        wesBasePath: {{.Values.transfer.wesBasePath }}
+        tesBasePath: {{.Values.transfer.tesBasePath }}
+        pvcName: {{ .Values.transfer.pvcName }}
+      {{- end }}
+  cluster.yaml: |
+    {{- with .Values.cluster.capacity }}
+    capacity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.cluster.limits }}
+    limits:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}

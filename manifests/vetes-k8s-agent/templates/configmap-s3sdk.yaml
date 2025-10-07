@@ -1,0 +1,29 @@
+{{- if .Values.s3.enable }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.s3.sdk.configmapName }}
+  labels:
+    {{- include "vetes-k8s-agent.labels" . | nindent 4 }}
+data:
+  config: |
+    [default]
+    s3_type={{ .Values.s3.type }}
+    endpoint_url={{ .Values.s3.sdk.endpoint }}
+    region={{ .Values.s3.sdk.region }}
+    {{- if eq .Values.s3.type "tos" }}
+    part_size={{ int .Values.s3.sdk.partSize }}
+    {{- if .Values.s3.sdk.maxBandWidth }}
+    max_bandwidth={{ int .Values.s3.sdk.maxBandWidth }}
+    {{- end }}
+    task_num={{ .Values.s3.sdk.taskNum }}
+    enable_crc={{ .Values.s3.sdk.enableCRC }}
+    {{- else if eq .Values.s3.sdk.type "s3" }}
+    multipart_threshold={{ int .Values.s3.sdk.partSize }}
+    multipart_chunksize={{ int .Values.s3.sdk.partSize }}
+    io_chunksize={{ div .Values.s3.sdk.partSize 64 | int }}
+    {{- if .Values.s3.sdk.maxBandWidth }}
+    max_bandwidth={{ int .Values.s3.sdk.maxBandWidth }}
+    {{- end }}
+    {{- end }}
+{{- end }}

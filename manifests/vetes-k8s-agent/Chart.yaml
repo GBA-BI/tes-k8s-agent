@@ -1,0 +1,6 @@
+apiVersion: v2
+name: vetes-k8s-agent
+description: A Helm chart for vetes-k8s-agent
+type: application
+version: v1.0.0
+appVersion: v1.0.0

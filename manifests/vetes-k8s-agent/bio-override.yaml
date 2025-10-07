@@ -1,0 +1,114 @@
+releases:
+- name: vetes-k8s-agent
+  namespace: {{ .Values.namespace }}
+  disableValidationOnInstall: true
+  installed: true
+  chart: {{ .Values.modulePath }}/vetes-k8s-agent
+  wait: false
+  values:
+  - platformConfig:
+      imageRegistry: {{ .Values.registryDomain }}
+      imageRepositoryRelease: {{ .Values.registryRepository }}
+      imagePullSecret: {{ .Values.registrySecret }}
+    replicaCount: {{ default "2" .Values.customconfig.vetes.k8sAgent.replicaCount }}
+    resources:
+      requests:
+        cpu: {{ .Values.customconfig.vetes.k8sAgent.resources.requests.cpu }}
+        memory: {{ .Values.customconfig.vetes.k8sAgent.resources.requests.memory }}
+      limits:
+        cpu: {{ .Values.customconfig.vetes.k8sAgent.resources.limits.cpu }}
+        memory: {{ .Values.customconfig.vetes.k8sAgent.resources.limits.memory }}
+    prometheus:
+      labels:
+        bio2s-monitor: compute
+    log:
+      taskLog:
+        storageClass: {{ .Values.persistence.storageClass }} # must be ReadWriteMany accessMode
+        pvcSize: {{ .Values.customconfig.vetes.k8sAgent.log.taskLog.pvcSize }}
+    vetesClient:
+      endpoint: {{ .Values.customconfig.vetes.k8sAgent.vetesClient.endpoint }} # http://vetes-api:8080
+    cluster:
+      id: {{ .Values.customconfig.vetes.k8sAgent.cluster.id }}
+      {{- with .Values.customconfig.vetes.k8sAgent.cluster.capacity }}
+      capacity: {{ toYaml . | nindent 8 }}
+      # count: int
+      # cpu_cores: int
+      # ram_gb: float64
+      # disk_gb: float64
+      # gpu_capacity: # null means no limit, empty means no gpu
+      #   gpu:
+      #     string: float64
+      {{- end }}
+      {{- with .Values.customconfig.vetes.k8sAgent.cluster.limits }}
+      limits: {{ toYaml . | nindent 8 }}
+      # cpu_cores: int
+      # ram_gb: float64
+      # gpu_limit: # null means no limit, empty means no gpu
+      #   gpu:
+      #     string: float64
+      {{- end }}
+    offload:
+      type: {{ .Values.customconfig.vetes.k8sAgent.offload.type }}
+      pvc:
+        storageClass: {{ .Values.persistence.storageClass }} # must be ReadWriteMany accessMode
+        pvcSize: {{ .Values.customconfig.vetes.k8sAgent.offload.pvc.pvcSize }}
+    s3:
+      enable: {{ .Values.customconfig.vetes.k8sAgent.s3.enable }}
+      type: {{ .Values.customconfig.vetes.k8sAgent.s3.type }} # tos or s3
+      staticSecret:
+        enable: true
+        ak: {{ .Values.customconfig.vetes.k8sAgent.s3.ak }}
+        sk: {{ .Values.customconfig.vetes.k8sAgent.s3.sk }}
+      sdk:
+        endpoint: {{ .Values.customconfig.vetes.k8sAgent.s3.endpoint }}
+        region: {{ .Values.customconfig.vetes.k8sAgent.s3.region }}
+    executorImagePullSecret:
+      static:
+        enable: true
+        name: {{ .Values.customconfig.vetes.k8sAgent.executorImagePullSecretName }}
+    storageClass: {{ .Values.customconfig.vetes.k8sAgent.storageClass }}
+    {{- with .Values.customconfig.vetes.k8sAgent.filerPodLabels }}
+    filerPodLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with.Values.customconfig.vetes.k8sAgent.filerPodAnnotations }}
+    filerPodAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with.Values.customconfig.vetes.k8sAgent.executorECSPodLabels }}
+    executorECSPodLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with.Values.customconfig.vetes.k8sAgent.executorECSPodAnnotations }}
+    executorECSPodAnnotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with.Values.customconfig.vetes.k8sAgent.executorPodEnv }}
+    executorPodEnv:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with.Values.customconfig.vetes.k8sAgent.filerPodEnv }}
+    filerPodEnv:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    accelerate:
+      type: {{ .Values.customconfig.vetes.k8sAgent.accelerate.type | quote }}
+      {{- if eq .Values.customconfig.vetes.k8sAgent.accelerate.type "mount-tos" }}
+      mountTOS:
+        tosS3URL: {{ .Values.customconfig.vetes.k8sAgent.accelerate.mountTOS.tosS3URL }}
+        bucketNumPerTask: {{ .Values.customconfig.vetes.k8sAgent.accelerate.mountTOS.bucketNumPerTask }}
+        cleanPeriod: {{ .Values.customconfig.vetes.k8sAgent.accelerate.mountTOS.cleanPeriod }}
+        staticTOSSecret:
+          enable: true
+          name: workflow-tos-secret
+          ak: {{ .Values.customconfig.vetes.k8sAgent.s3.ak }}
+          sk: {{ .Values.customconfig.vetes.k8sAgent.s3.sk }}
+        fusePodResources: {{ toYaml .Values.customconfig.vetes.k8sAgent.accelerate.mountTOS.fusePodResources | nindent 10 }}
+        additionalArgs: {{ .Values.customconfig.vetes.k8sAgent.accelerate.mountTOS.additionalArgs | quote }}
+      {{- end }}
+    transfer:
+      enable: {{ .Values.customconfig.cromwell.transfer.enabled }}
+      wesBasePath: {{ .Values.customconfig.cromwell.transfer.wesBasePath }}
+      pvcName: {{ .Values.customconfig.cromwell.transfer.pvc.name }}
+    networkpolicy:
+      enable: false
